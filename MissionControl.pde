@@ -17,8 +17,8 @@ ArrayList<Obstacle> obstacles;
 void setup() {
   background(#333333);
 
-  //serial = new Serial(this, "/dev/tty.ElementSerial-ElementSe", 57600);
-  //serial.bufferUntil('\n');
+  serial = new Serial(this, "/dev/tty.ElementSerial-ElementSe", 57600);
+  serial.bufferUntil('\n');
   
 
   //fullScreen();
@@ -64,17 +64,23 @@ void keyTyped() {
     // enter pressed, execute command in buffer
     serial.write(inputBuffer + '\n');
     println(" >> " + inputBuffer);
-
-    if (inputBuffer.indexOf("scan:0") >= 0) {
+    
+    if (inputBuffer.indexOf("scan") >= 0) {
       vehicle.scanning = true;
     }
 
     // clear buffer
     inputBuffer = "";
-  } else if (key >= 32 && key <= 126)
+  }
+  else if (key == BACKSPACE) {
+    if (inputBuffer.length() > 0) {
+    inputBuffer = inputBuffer.substring(0, inputBuffer.length()-1);
+    }
+  }
+  else if (key >= 32 && key <= 126)
   {
     inputBuffer += key;
-  }
+  } 
 }
 
 void serialEvent(Serial p) { 
@@ -97,6 +103,11 @@ void serialEvent(Serial p) {
     break;
 
   case "scan":
+    for (int i = 0; i < obstacles.size(); i++) {
+      if (obstacles.get(i).age < 4) {
+              obstacles.get(i).age++;
+      }
+    }
     vehicle.scanning = false;
     break;
 
@@ -114,61 +125,79 @@ void serialEvent(Serial p) {
     
   case "emergency":
     int where = Integer.parseInt(value);
+    int what = 0;
     angle = 0;
     switch(where) {
       case 1:
         // bumper left
         outputBuffer = "BUMPER LEFT";
-        pos = new PVector(35*cos(angle), 35*sin(angle));
+        angle = 45;
+        what = 1;
         break;
       case 2:
         // bumper right
         outputBuffer = "BUMPER RIGHT";
-        angle = radians(45) - HALF_PI + vehicle.getHeading();
+        angle = -45;
+        what = 1;
         break;
       case 3:
         // line left
         outputBuffer = "LINE LEFT";
+        angle = 60;
+        what = 2;
         break;
       case 4:
         // line front-left
         outputBuffer = "LINE FRONT-LEFT";
+        angle = 10;
+        what = 2;
         break;
       case 5:
         // line front-right
         outputBuffer = "LINE FRONT-RIGHT";
+        angle = -10;
+        what = 2;
         break;
       case 6:
         // line right
         outputBuffer = "LINE RIGHT";
+        angle = -60;
+        what = 2;
         break;
       case 7:
         // cliff left
         outputBuffer = "CLIFF LEFT";
+        angle = 60;
+        what = 3;
         break;
       case 8:
         // cliff front-left
         outputBuffer = "CLIFF FRONT-LEFT";
+        angle = 10;
+        what = 3;
         break;
       case 9:
         // cliff front-right
         outputBuffer = "CLIFF FRONT-RIGHT";
+        angle = -10;
+        what = 3;
         break;
       case 10:
         // cliff right
         outputBuffer = "CLIFF RIGHT";
+        angle = -60;
+        what = 3;
         break;
+        
       default:
         angle = 0;
         break;
     }
+        
+    angle = radians(-angle) - HALF_PI + vehicle.getHeading();
+    pos = (new PVector(17*cos(angle), 17*sin(angle))).add(vehicle.getPosition());
     
-    angle = radians(angle) - HALF_PI + vehicle.getHeading();
-    pos = new PVector(35*cos(angle), 35*sin(angle));
-    
-    //switch(where)
-    //obstacles.add(new Obstacle(pos, diameter, 0));
-    break;
+    obstacles.add(new Obstacle(pos, 0, what));
   }
 }
 
